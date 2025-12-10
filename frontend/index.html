@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CoinDCX Futures Bot</title>
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">🤖</div>
+            <h1>CoinDCX Futures Bot</h1>
+            <p>USDT Perpetual Trading</p>
+            <div class="status" id="status">
+                <span class="dot"></span>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Server Status -->
+        <div class="card" id="serverCard">
+            <h2>🖥️ Server</h2>
+            <div id="serverStatus">Connecting...</div>
+        </div>
+
+        <!-- Coin Selection -->
+        <div class="card">
+            <h2>🪙 Select Futures Pair</h2>
+            <div class="coins">
+                <button class="coin" onclick="selectCoin('BTCUSDT', 'Bitcoin')">
+                    <span class="icon">₿</span>
+                    <span class="name">BTC/USDT</span>
+                    <span class="price" id="price-BTCUSDT">--</span>
+                </button>
+                <button class="coin" onclick="selectCoin('ETHUSDT', 'Ethereum')">
+                    <span class="icon">Ξ</span>
+                    <span class="name">ETH/USDT</span>
+                    <span class="price" id="price-ETHUSDT">--</span>
+                </button>
+                <button class="coin" onclick="selectCoin('SOLUSDT', 'Solana')">
+                    <span class="icon">◎</span>
+                    <span class="name">SOL/USDT</span>
+                    <span class="price" id="price-SOLUSDT">--</span>
+                </button>
+                <button class="coin" onclick="selectCoin('XRPUSDT', 'XRP')">
+                    <span class="icon">✕</span>
+                    <span class="name">XRP/USDT</span>
+                    <span class="price" id="price-XRPUSDT">--</span>
+                </button>
+                <button class="coin" onclick="selectCoin('DOGEUSDT', 'Doge')">
+                    <span class="icon">Ð</span>
+                    <span class="name">DOGE/USDT</span>
+                    <span class="price" id="price-DOGEUSDT">--</span>
+                </button>
+                <button class="coin" onclick="selectCoin('ADAUSDT', 'Cardano')">
+                    <span class="icon">₳</span>
+                    <span class="name">ADA/USDT</span>
+                    <span class="price" id="price-ADAUSDT">--</span>
+                </button>
+            </div>
+            
+            <div class="selected hidden" id="selectedCoin">
+                <span id="selectedName">Bitcoin</span>
+                <span class="live">LIVE: <b id="livePrice">$0</b></span>
+            </div>
+        </div>
+
+        <!-- Trade Setup -->
+        <div class="card hidden" id="tradeCard">
+            <h2>📊 Trade Setup</h2>
+            
+            <!-- Type -->
+            <label>Position Type</label>
+            <div class="toggle">
+                <button class="active" id="longBtn" onclick="setType('LONG')">📈 LONG</button>
+                <button id="shortBtn" onclick="setType('SHORT')">📉 SHORT</button>
+            </div>
+
+            <!-- Entry Type -->
+            <label>Entry Type</label>
+            <div class="toggle">
+                <button class="active" id="marketBtn" onclick="setEntry('MARKET')">⚡ Market</button>
+                <button id="limitBtn" onclick="setEntry('LIMIT')">🎯 Limit</button>
+            </div>
+
+            <!-- Limit Price -->
+            <div class="field hidden" id="entryField">
+                <label>Entry Price ($)</label>
+                <input type="number" id="entryPrice" placeholder="Enter price">
+                <button class="small" onclick="useLive()">Use Live</button>
+            </div>
+
+            <!-- CAPITAL - NEW! -->
+            <div class="field">
+                <label>💰 Capital (USDT) <span class="highlight">← Enter money, not quantity!</span></label>
+                <div class="input-with-icon">
+                    <span class="prefix">$</span>
+                    <input type="number" id="capital" placeholder="100" value="100" oninput="updateSummary()">
+                </div>
+                <small class="hint">How much USDT you want to trade</small>
+            </div>
+
+            <!-- Leverage -->
+            <div class="field">
+                <label>⚡ Leverage</label>
+                <div class="leverage-buttons">
+                    <button onclick="setLeverage(1)" class="lev-btn active" id="lev1">1x</button>
+                    <button onclick="setLeverage(5)" class="lev-btn" id="lev5">5x</button>
+                    <button onclick="setLeverage(10)" class="lev-btn" id="lev10">10x</button>
+                    <button onclick="setLeverage(20)" class="lev-btn" id="lev20">20x</button>
+                </div>
+                <input type="hidden" id="leverage" value="1">
+            </div>
+
+            <!-- Stop Loss -->
+            <div class="field">
+                <label>🛑 Stop Loss ($) <span class="hint-right" id="slHint">Below entry for LONG</span></label>
+                <div class="input-with-icon">
+                    <span class="prefix">$</span>
+                    <input type="number" id="stopLoss" placeholder="Enter stop loss" oninput="updateSummary()">
+                </div>
+                <div class="sl-suggestions" id="slSuggestions"></div>
+            </div>
+
+            <!-- Take Profit -->
+            <div class="field">
+                <label>🎯 Take Profit ($) <span class="optional">(Optional - Auto 2R if empty)</span></label>
+                <div class="input-with-icon">
+                    <span class="prefix">$</span>
+                    <input type="number" id="takeProfit" placeholder="Auto-calculated if empty" oninput="updateSummary()">
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="summary" id="summary">
+                <div class="summary-title">📊 Trade Summary</div>
+                <div class="summary-row">
+                    <span>Position Size:</span>
+                    <span id="positionSize">--</span>
+                </div>
+                <div class="summary-row">
+                    <span>Entry Price:</span>
+                    <span id="summaryEntry">--</span>
+                </div>
+                <div class="summary-row danger">
+                    <span>Risk Amount:</span>
+                    <span id="riskAmount">--</span>
+                </div>
+                <div class="summary-row danger">
+                    <span>Risk %:</span>
+                    <span id="riskPercent">--</span>
+                </div>
+                <div class="summary-row success">
+                    <span>Target (2R):</span>
+                    <span id="target2R">--</span>
+                </div>
+                <div class="summary-row success">
+                    <span>Potential Profit:</span>
+                    <span id="potentialProfit">--</span>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button class="primary" id="startBtn" onclick="startBot()">
+                🤖 START AUTO TRADING
+            </button>
+            <p class="warning">⚠️ Real orders will be placed on CoinDCX!</p>
+        </div>
+
+        <!-- Monitor -->
+        <div class="card hidden" id="monitorCard">
+            <h2>📡 Active Trade <span class="badge" id="badge">RUNNING</span></h2>
+            
+            <div class="stats">
+                <div class="stat big">
+                    <span class="label">Price</span>
+                    <span class="value" id="mPrice">--</span>
+                </div>
+                <div class="stat big">
+                    <span class="label">R:R</span>
+                    <span class="value" id="mRR">--</span>
+                </div>
+                <div class="stat">
+                    <span class="label">Entry</span>
+                    <span class="value" id="mEntry">--</span>
+                </div>
+                <div class="stat">
+                    <span class="label">Current SL</span>
+                    <span class="value yellow" id="mSL">--</span>
+                </div>
+                <div class="stat">
+                    <span class="label">Take Profit</span>
+                    <span class="value green" id="mTP">--</span>
+                </div>
+                <div class="stat">
+                    <span class="label">P/L</span>
+                    <span class="value" id="mPnL">--</span>
+                </div>
+            </div>
+
+            <div class="action" id="actionBox">
+                <span id="actionIcon">👀</span>
+                <span id="actionText">Monitoring...</span>
+            </div>
+
+            <!-- Trailing Levels -->
+            <div class="levels" id="levelsBox">
+                <div class="levels-title">Trailing Levels</div>
+                <div class="levels-grid" id="levelsGrid"></div>
+            </div>
+
+            <button class="danger" onclick="stopBot()">⏹️ STOP & CLOSE TRADE</button>
+        </div>
+
+        <!-- Log -->
+        <div class="card">
+            <h2>📜 Trade Log</h2>
+            <div class="log" id="log">
+                <div class="empty">Waiting for trades...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Alert -->
+    <div class="overlay hidden" id="overlay">
+        <div class="alert">
+            <div class="alertIcon" id="alertIcon">🎯</div>
+            <h2 id="alertTitle">Alert</h2>
+            <p id="alertMsg">Message</p>
+            <button onclick="closeAlert()">OK</button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast hidden" id="toast">
+        <span id="toastMsg">Message</span>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
