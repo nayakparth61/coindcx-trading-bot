@@ -1,5 +1,5 @@
 """
-CoinDCX Trading Bot - Simple Server
+CoinDCX Trading Bot - Server
 """
 
 from flask import Flask, request, jsonify, send_from_directory
@@ -8,7 +8,9 @@ import os
 
 from coindcx_api import CoinDCXAPI
 from trailing_bot import TrailingBot
-from config import SERVER_HOST, SERVER_PORT
+
+# Get PORT from Railway (important!)
+PORT = int(os.environ.get("PORT", 5000))
 
 app = Flask(__name__, static_folder='../frontend')
 CORS(app)
@@ -85,6 +87,5 @@ def test_api():
 # ==========================================
 
 if __name__ == '__main__':
-    print("🚀 Server starting...")
-    print(f"🌐 Running on port {SERVER_PORT}")
-    app.run(host=SERVER_HOST, port=SERVER_PORT, debug=False, threaded=True)
+    print(f"🚀 Server starting on port {PORT}...")
+    app.run(host='0.0.0.0', port=PORT, debug=False, threaded=True)
